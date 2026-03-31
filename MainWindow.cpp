@@ -490,7 +490,7 @@ void MainWindow::refreshRecentFilesMenu() {
     }
     for (const QString& path : recent) {
         QAction* act =
-            m_recentMenu->addAction(QFileInfo(path).fileName() + "  \t" + path);
+            m_recentMenu->addAction(m_tabWidget->iconForFile(path), QFileInfo(path).fileName() + "  \t" + path);
         connect(act, &QAction::triggered, this,
                 [this, path]() { onOpenRecentFile(path); });
     }

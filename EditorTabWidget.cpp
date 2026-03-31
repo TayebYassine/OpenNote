@@ -162,8 +162,6 @@ void EditorTabWidget::openFile(const QString& filePath) {
 
         if (btn == QMessageBox::Yes) {
             QDesktopServices::openUrl(QUrl::fromLocalFile(filePath));
-            AppDatabase::instance().addRecentFile(filePath);
-            AppDatabase::instance().save();
         }
         return;
     }

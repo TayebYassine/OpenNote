@@ -39,6 +39,8 @@ public:
 
     bool autoIndent() const { return m_autoIndent; }
 
+    QIcon iconForFile(const QString& filePath) const;
+
     signals :
 
 
@@ -60,8 +62,6 @@ private:
     void updateTabTitle(int index);
 
     void attachCloseButton(int index);
-
-    QIcon iconForFile(const QString& filePath) const;
 
     int findTabByPath(const QString& filePath) const;
 
