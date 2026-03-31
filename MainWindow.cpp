@@ -170,6 +170,10 @@ void MainWindow::setupCentralWidget() {
             &MainWindow::onCursorPositionChanged);
     connect(m_fileTree, &FileTreeWidget::statusMessage, statusBar(),
             &QStatusBar::showMessage);
+    connect(m_fileTree, &FileTreeWidget::filePathChanged, this,
+        &MainWindow::onFilePathChanged);
+    connect(m_fileTree, &FileTreeWidget::filePathDeleted, this,
+            &MainWindow::onFilePathDeleted);
 }
 
 void MainWindow::setupStatusBar() {
@@ -579,4 +583,77 @@ QString MainWindow::autoDetectFileUnicode(const QString& filePath) {
     QString encodingName = QStringConverter::nameForEncoding(enc);
 
     return encodingName.isEmpty() ? "?" : encodingName;
+}
+
+bool MainWindow::hasTabOpenWithPath(const QString& filePath) {
+    return m_tabWidget->hasTabOpenWithPath(filePath);
+}
+
+void MainWindow::onFilePathChanged(const QString& oldPath, const QString& newPath) {
+    for (int i = 0; i < m_tabWidget->count(); ++i) {
+        auto* ed = m_tabWidget->editorAt(i);
+        if (!ed) continue;
+
+        QString edPath = ed->filePath();
+
+        if (edPath == oldPath) {
+            ed->setFilePath(newPath);
+            m_tabWidget->updateTabTitle(i);
+            if (i == m_tabWidget->currentIndex()) {
+                emit m_tabWidget->currentFileChanged(newPath, ed->language());
+            }
+            continue;
+        }
+
+        if (edPath.startsWith(oldPath + "/")) {
+            QString relativePath = edPath.mid(oldPath.length());
+            QString updatedPath = newPath + relativePath;
+            ed->setFilePath(updatedPath);
+            m_tabWidget->updateTabTitle(i);
+            if (i == m_tabWidget->currentIndex()) {
+                emit m_tabWidget->currentFileChanged(updatedPath, ed->language());
+            }
+        }
+    }
+
+    AppDatabase::instance().removeRecentFile(oldPath);
+    AppDatabase::instance().addRecentFile(newPath);
+    AppDatabase::instance().save();
+    refreshRecentFilesMenu();
+}
+
+void MainWindow::onFilePathDeleted(const QString& path) {
+    QList<int> tabsToClose;
+
+    for (int i = m_tabWidget->count() - 1; i >= 0; --i) {
+        auto* ed = m_tabWidget->editorAt(i);
+        if (!ed) continue;
+
+        QString edPath = ed->filePath();
+
+        if (edPath == path || edPath.startsWith(path + "/")) {
+            tabsToClose.append(i);
+        }
+    }
+
+    for (int idx : tabsToClose) {
+        auto* ed = m_tabWidget->editorAt(idx);
+        if (ed) {
+            QWidget* closeBtn = m_tabWidget->tabBar()->tabButton(idx, QTabBar::RightSide);
+            if (closeBtn) {
+                m_tabWidget->tabBar()->setTabButton(idx, QTabBar::RightSide, nullptr);
+                delete closeBtn;
+            }
+            m_tabWidget->removeTab(idx);
+            delete ed;
+        }
+    }
+
+    AppDatabase::instance().removeRecentFile(path);
+    AppDatabase::instance().save();
+    refreshRecentFilesMenu();
+
+    if (m_tabWidget->count() == 0) {
+        m_tabWidget->newFile();
+    }
 }

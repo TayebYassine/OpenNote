@@ -27,11 +27,14 @@ public:
     bool saveTab(int index);
     bool saveTabAs(int index);
 
+    void updateTabTitle(int index);
     void overrideLanguage(Language lang);
 
     void updateRecentFiles();
 
     void setTabSize(int size);
+
+    bool hasTabOpenWithPath(const QString& filePath);
 
     int tabSize() const { return m_tabSize; }
 
@@ -59,8 +62,6 @@ private
     void onCursorMoved();
 
 private:
-    void updateTabTitle(int index);
-
     void attachCloseButton(int index);
 
     int findTabByPath(const QString& filePath) const;

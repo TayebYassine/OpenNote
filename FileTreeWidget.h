@@ -28,6 +28,10 @@ public:
 
     void statusMessage(const QString& message, int timeoutMs);
 
+    void filePathChanged(const QString& oldPath, const QString& newPath);
+
+    void filePathDeleted(const QString& path);
+
 private
     slots :
     
@@ -35,8 +39,28 @@ private
 
     void onChooseFolder();
 
+    void onContextMenuRequested(const QPoint& pos);
+
+    void onOpenFile();
+    void onOpenWithDefault();
+    void onRenameItem();
+    void onMoveItem();
+    void onDeleteItem();
+    void onFileProperties();
+
+    void onExpandFolder();
+    void onCollapseFolder();
+    void onOpenInFileManager();
+
 private:
     void setupUi();
+
+    bool isContextMenuItemFile() const;
+    bool isContextMenuItemFolder() const;
+    QString contextMenuItemPath() const;
+    void updateTabPaths(const QString& oldPath, const QString& newPath);
+    void closeTabsWithPath(const QString& path);
+    bool hasTabsWithPath(const QString& path) const;
 
     QVBoxLayout* m_layout = nullptr;
     QLabel* m_label = nullptr;
@@ -44,6 +68,7 @@ private:
     QToolButton* m_refreshBtn = nullptr;
     QTreeView* m_treeView = nullptr;
     QFileSystemModel* m_model = nullptr;
+    QModelIndex m_contextMenuIndex;
 };
 
 #endif  // OPENNOTE_LINUX_FILETREEWIDGET_H

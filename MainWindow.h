@@ -23,6 +23,8 @@ public:
 
     ~MainWindow() override = default;
 
+    bool hasTabOpenWithPath(const QString& filePath);
+
 protected:
     void closeEvent(QCloseEvent* event) override;
 
@@ -125,6 +127,9 @@ private:
     void applyFontToAllEditors(const QString& family, int pointSize);
 
     QString autoDetectFileUnicode(const QString& filePath);
+
+    void onFilePathChanged(const QString& oldPath, const QString& newPath);
+    void onFilePathDeleted(const QString& path);
 
     // Widgets
     QSplitter* m_splitter = nullptr;

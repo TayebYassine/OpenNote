@@ -47,6 +47,10 @@ void EditorTabWidget::setTabSize(int size) {
         if (auto* ed = editorAt(i)) ed->setTabSize(m_tabSize);
 }
 
+bool EditorTabWidget::hasTabOpenWithPath(const QString& filePath) {
+    return findTabByPath(filePath) >= 0;
+}
+
 void EditorTabWidget::setAutoIndent(bool on) {
     m_autoIndent = on;
     for (int i = 0; i < count(); ++i)
