@@ -38,7 +38,7 @@ void FileTreeWidget::setupUi() {
         "font-size: 11px; font-weight: bold; letter-spacing: 1px;");
 
     m_folderBtn = new QToolButton(header);
-    m_folderBtn->setIcon(QIcon::fromTheme(QIcon::ThemeIcon::FolderOpen));
+    m_folderBtn->setIcon(QIcon::fromTheme(QIcon::ThemeIcon::FolderVisiting));
     m_folderBtn->setToolTip("Open folder…");
     m_folderBtn->setStyleSheet("QToolButton { border: none; font-size: 15px; }");
 
@@ -127,7 +127,7 @@ void FileTreeWidget::onContextMenuRequested(const QPoint& pos) {
         menu.addAction(QIcon::fromTheme(QIcon::ThemeIcon::DocumentOpen),
                       "Open", this, &FileTreeWidget::onOpenFile);
         menu.addAction(QIcon::fromTheme("document-open-remote"),
-                      "Open with Default Application", this,
+                      "Open With...", this,
                       &FileTreeWidget::onOpenWithDefault);
         menu.addSeparator();
         menu.addAction(QIcon::fromTheme("edit-rename"), // TODO ts
@@ -311,12 +311,12 @@ void FileTreeWidget::onDeleteItem() {
 
     QFileInfo info(path);
     QString itemType = info.isDir() ? "folder" : "file";
+    QString warning = info.isDir() ? "" : "<br><br>Open tabs will be closed without saving.";
 
     auto reply = QMessageBox::question(this, "Confirm Delete",
         QString("Are you sure you want to delete the %1 '<b>%2</b>'?<br>"
-                "This action cannot be undone.<br><br>"
-                "Open tabs will be closed without saving.")
-        .arg(itemType, info.fileName()),
+                "This action cannot be undone.%3")
+        .arg(itemType, info.fileName(), warning),
         QMessageBox::Yes | QMessageBox::Cancel,
         QMessageBox::Cancel);
 
