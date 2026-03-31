@@ -510,9 +510,20 @@ void MainWindow::buildLanguageMenu() {
     for (Language lang : allLanguages())
         byLetter[languageName(lang).at(0).toUpper()].append(lang);
 
+    QAction* plainTextAct = m_languageMenu->addAction("Plain Text");
+    plainTextAct->setCheckable(true);
+    plainTextAct->setActionGroup(m_langGroup);
+    connect(plainTextAct, &QAction::triggered, this,
+        [this]() {
+            onLanguageOverride(Language::None);
+        });
+    m_languageMenu->addSeparator();
+
     for (auto it = byLetter.constBegin(); it != byLetter.constEnd(); ++it) {
         QMenu* letterMenu = m_languageMenu->addMenu(QString(it.key()));
         for (Language lang : it.value()) {
+            if (lang == Language::None) continue;
+
             QAction* act = letterMenu->addAction(languageName(lang));
             act->setCheckable(true);
             act->setActionGroup(m_langGroup);
