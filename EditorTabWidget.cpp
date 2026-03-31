@@ -267,7 +267,29 @@ bool EditorTabWidget::saveTabAs(int index) {
         "All Files (*)");
     if (path.isEmpty()) return false;
 
+    const int existing = findTabByPath(path);
+    if (existing >= 0 && existing != index) {
+        QMessageBox::warning(this, "File Already Open",
+            "This file is already open in another tab.");
+        return false;
+    }
+
     editor->setFilePath(path);
+
+    updateTabTitle(index);
+
+    AppDatabase::instance().addRecentFile(path);
+    AppDatabase::instance().save();
+
+    emit currentFileChanged(path, editor->language());
+
+    disconnect(editor->document(), &QTextDocument::modificationChanged, nullptr, nullptr);
+    connect(editor->document(), &QTextDocument::modificationChanged, this,
+        [this, editor](bool) {
+            const int idx = indexOf(editor);
+            if (idx >= 0) updateTabTitle(idx);
+        });
+
     return saveTab(index);
 }
 
