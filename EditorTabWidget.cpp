@@ -1,6 +1,7 @@
 #include "EditorTabWidget.h"
 
 #include <QApplication>
+#include <QDesktopServices>
 #include <QDir>
 #include <QFile>
 #include <QFileDialog>
@@ -147,14 +148,23 @@ void EditorTabWidget::openFile(const QString& filePath) {
         return;
     }
 
-    // Binary detection
     const QByteArray sample = file.read(8192);
     if (sample.contains('\0')) {
-        QMessageBox::warning(this, "Cannot Open File",
-                             "'" + QFileInfo(filePath).fileName() +
-                             "' appears to be a binary file\n"
-                             "and cannot be opened in the editor.");
         file.close();
+
+        auto btn = QMessageBox::question(
+            this, "Binary File Detected",
+            QString("'<b>%1</b>' appears to be a binary file.<br>"
+                    "Open with the default application instead?")
+            .arg(QFileInfo(filePath).fileName()),
+            QMessageBox::Yes | QMessageBox::No,
+            QMessageBox::Yes);
+
+        if (btn == QMessageBox::Yes) {
+            QDesktopServices::openUrl(QUrl::fromLocalFile(filePath));
+            AppDatabase::instance().addRecentFile(filePath);
+            AppDatabase::instance().save();
+        }
         return;
     }
 
