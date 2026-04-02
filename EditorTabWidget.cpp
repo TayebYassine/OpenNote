@@ -265,9 +265,11 @@ bool EditorTabWidget::saveTabAs(int index) {
     auto* editor = editorAt(index);
     if (!editor) return false;
 
+    const QString workingDir = AppDatabase::instance().recentDirectory();
+
     const QString path = QFileDialog::getSaveFileName(
         this, "Save As",
-        editor->filePath().isEmpty() ? QDir::homePath() : editor->filePath(),
+        editor->filePath().isEmpty() ? (workingDir.isEmpty() ? QDir::homePath() : workingDir) : editor->filePath(),
         "All Files (*)");
     if (path.isEmpty()) return false;
 
