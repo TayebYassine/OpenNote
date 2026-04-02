@@ -141,10 +141,14 @@ void FileTreeWidget::onContextMenuRequested(const QPoint& pos) {
                       "Properties", this, &FileTreeWidget::onFileProperties);
     } else {
         // Folder menu
-        menu.addAction(QIcon::fromTheme(QIcon::ThemeIcon::GoUp),
-                      "Expand", this, &FileTreeWidget::onExpandFolder);
-        menu.addAction(QIcon::fromTheme(QIcon::ThemeIcon::GoDown),
-                      "Collapse", this, &FileTreeWidget::onCollapseFolder);
+        bool isExpanded = m_treeView->isExpanded(m_contextMenuIndex);
+
+        QAction* expandAct = menu.addAction(QIcon::fromTheme(QIcon::ThemeIcon::GoUp),
+                          "Expand", this, &FileTreeWidget::onExpandFolder);
+        expandAct->setEnabled(!isExpanded);
+        QAction* collapseAct = menu.addAction(QIcon::fromTheme(QIcon::ThemeIcon::GoDown),
+                          "Collapse", this, &FileTreeWidget::onCollapseFolder);
+        collapseAct->setEnabled(isExpanded);
         menu.addSeparator();
         menu.addAction(QIcon::fromTheme(QIcon::ThemeIcon::FolderOpen),
                       "Open in File Manager", this,

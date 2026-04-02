@@ -102,7 +102,7 @@ void MainWindow::setupMenuBar() {
 
     QMenu* viewMenu = menuBar()->addMenu("&View");
 
-    QAction* toggleTree = viewMenu->addAction("Toggle &File Explorer", this,
+    QAction* toggleTree = viewMenu->addAction("&File Explorer", this,
                                               &MainWindow::onToggleFileTree,
                                               QKeySequence(Qt::CTRL | Qt::Key_B));
     toggleTree->setCheckable(true);
