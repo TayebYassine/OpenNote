@@ -130,11 +130,11 @@ void FileTreeWidget::onContextMenuRequested(const QPoint& pos) {
                       "Open With...", this,
                       &FileTreeWidget::onOpenWithDefault);
         menu.addSeparator();
-        menu.addAction(QIcon::fromTheme("edit-rename"), // TODO ts
+        menu.addAction(QIcon::fromTheme("edit-rename"),
                       "Rename", this, &FileTreeWidget::onRenameItem);
-        menu.addAction(QApplication::style()->standardIcon(QStyle::SP_DirLinkIcon), // TODO ts
+        menu.addAction(QApplication::style()->standardIcon(QStyle::SP_DirLinkIcon),
                       "Move to Folder...", this, &FileTreeWidget::onMoveItem);
-        menu.addAction(QApplication::style()->standardIcon(QStyle::SP_TrashIcon), // TODO Ts
+        menu.addAction(QApplication::style()->standardIcon(QStyle::SP_TrashIcon),
                       "Delete", this, &FileTreeWidget::onDeleteItem);
         menu.addSeparator();
         menu.addAction(QIcon::fromTheme(QIcon::ThemeIcon::DialogInformation),
