@@ -165,19 +165,23 @@ void CodeEditor::refreshFolds() {
 
 void CodeEditor::keyPressEvent(QKeyEvent *event) {
     if (m_autoCompleter && m_autoCompleter->isPopupVisible()) {
-        if (event->key() == Qt::Key_Tab || event->key() == Qt::Key_Return ||
-            event->key() == Qt::Key_Enter) {
-            // Let the completer handle it
-            QPlainTextEdit::keyPressEvent(event);
+        if (event->key() == Qt::Key_Up || event->key() == Qt::Key_Down ||
+            event->key() == Qt::Key_PageUp || event->key() == Qt::Key_PageDown) {
+            event->ignore();
             return;
             }
+
+        if (event->key() == Qt::Key_Tab || event->key() == Qt::Key_Return ||
+            event->key() == Qt::Key_Enter) {
+            event->ignore();
+            return;
+            }
+
         if (event->key() == Qt::Key_Escape) {
             m_autoCompleter->hideCompletion();
             return;
         }
-    }
-
-    if (event->key() == Qt::Key_Tab) {
+    } else if (event->key() == Qt::Key_Tab) {
         if (m_spacesInsteadOfTabs) {
             QTextCursor cur = textCursor();
             const int col = cur.columnNumber();

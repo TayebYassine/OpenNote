@@ -22,7 +22,6 @@ AutoCompleter::AutoCompleter(CodeEditor* editor)
 }
 
 void AutoCompleter::updateWordList(const QString& text) {
-    // Extract all words (alphanumeric + underscore, min length 2)
     QRegularExpression re(R"(\b[a-zA-Z_]\w{1,}\b)");
     auto it = re.globalMatch(text);
 
@@ -50,7 +49,6 @@ void AutoCompleter::showCompletion() {
     m_completer->setCompletionPrefix(prefix);
 
     if (m_completer->completionCount() <= 1) {
-        // Only the word itself — no point showing
         hideCompletion();
         return;
     }
