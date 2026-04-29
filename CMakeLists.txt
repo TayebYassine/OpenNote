@@ -40,6 +40,8 @@ add_executable(OpenNote_Linux
         AboutDialog.cpp
         FoldManager.h
         FoldManager.cpp
+        AutoCompleter.h
+        AutoCompleter.cpp
 )
 
 target_compile_definitions(OpenNote_Linux PRIVATE

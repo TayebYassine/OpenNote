@@ -9,6 +9,7 @@
 
 #include "AppDatabase.h"
 #include "SyntaxHighlighter.h"
+#include "AutoCompleter.h"
 
 namespace {
 constexpr int kBookmarkColumnWidth = 18;
@@ -66,6 +67,7 @@ void CodeEditor::initEditor() {
 
     m_lineNumberArea = new LineNumberArea(this);
     m_foldManager = new FoldManager(document(), Language::None);
+    m_autoCompleter = new AutoCompleter(this);
 
     connect(this, &CodeEditor::blockCountChanged, this,
             &CodeEditor::updateLineNumberAreaWidth);
@@ -90,6 +92,7 @@ void CodeEditor::initEditor() {
                     m_lineNumberArea->update();
                 }
             });
+    connect(this, &CodeEditor::textChanged, this, &CodeEditor::updateAutoCompleteWords);
 
     updateLineNumberAreaWidth(0);
     onHighlightCurrentLine();
@@ -161,6 +164,19 @@ void CodeEditor::refreshFolds() {
 }
 
 void CodeEditor::keyPressEvent(QKeyEvent *event) {
+    if (m_autoCompleter && m_autoCompleter->isPopupVisible()) {
+        if (event->key() == Qt::Key_Tab || event->key() == Qt::Key_Return ||
+            event->key() == Qt::Key_Enter) {
+            // Let the completer handle it
+            QPlainTextEdit::keyPressEvent(event);
+            return;
+            }
+        if (event->key() == Qt::Key_Escape) {
+            m_autoCompleter->hideCompletion();
+            return;
+        }
+    }
+
     if (event->key() == Qt::Key_Tab) {
         if (m_spacesInsteadOfTabs) {
             QTextCursor cur = textCursor();
@@ -213,6 +229,10 @@ void CodeEditor::keyPressEvent(QKeyEvent *event) {
             event->key() == Qt::Key_Delete) {
             QTimer::singleShot(100, this, &CodeEditor::refreshFolds);
         }
+    }
+
+    if (m_autoCompleter && !event->text().isEmpty() && event->text().at(0).isLetterOrNumber()) {
+        QTimer::singleShot(0, this, &CodeEditor::updateAutoCompleteWords);
     }
 }
 
@@ -633,4 +653,10 @@ void CodeEditor::onCursorPositionChanged() {
             }
         }
     }
+}
+
+void CodeEditor::updateAutoCompleteWords() {
+    if (!m_autoCompleter) return;
+    m_autoCompleter->updateWordList(toPlainText());
+    m_autoCompleter->showCompletion();
 }

@@ -14,6 +14,9 @@
 class SyntaxHighlighter;
 class LineNumberArea;
 
+class AutoCompleter;
+    inline AutoCompleter* m_autoCompleter = nullptr;
+
 class CodeEditor : public QPlainTextEdit {
     Q_OBJECT
 
@@ -63,6 +66,7 @@ public:
 
 public slots:
     void goToLine(int lineNumber);
+    void updateAutoCompleteWords();
 
 protected:
     void resizeEvent(QResizeEvent* event) override;
