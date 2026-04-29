@@ -1,86 +1,146 @@
 #include "FindReplaceDialog.h"
 
-#include <QFormLayout>
+#include <QApplication>
+#include <QFrame>
 #include <QGridLayout>
-#include <QGroupBox>
 #include <QHBoxLayout>
+#include <QKeyEvent>
 #include <QRegularExpression>
+#include <QSpacerItem>
+#include <QStyle>
 #include <QTextDocument>
 #include <QVBoxLayout>
+
+#include "CodeEditor.h"
 
 FindReplaceDialog::FindReplaceDialog(QWidget *parent)
     : QDialog(parent, Qt::Dialog | Qt::WindowCloseButtonHint) {
     setWindowTitle("Find and Replace");
     setModal(false);
     setupUi();
-    resize(480, 280);
+    resize(520, 340);
 }
 
 void FindReplaceDialog::setupUi() {
     auto *root = new QVBoxLayout(this);
-    root->setSpacing(10);
-    root->setContentsMargins(16, 16, 16, 12);
+    root->setSpacing(0);
+    root->setContentsMargins(0, 0, 0, 0);
 
-    auto *formLayout = new QGridLayout;
-    formLayout->setColumnStretch(1, 1);
-    formLayout->setVerticalSpacing(8);
 
-    formLayout->addWidget(new QLabel("Find"), 0, 0, Qt::AlignRight);
-    m_findEdit = new QLineEdit(this);
+    auto *content = new QWidget(this);
+    auto *contentLayout = new QVBoxLayout(content);
+    contentLayout->setSpacing(16);
+    contentLayout->setContentsMargins(20, 16, 20, 16);
+
+
+    auto *findRow = new QHBoxLayout;
+    findRow->setSpacing(10);
+    auto *findLabel = new QLabel("Find", content);
+    findLabel->setFixedWidth(80);
+    findLabel->setObjectName("frLabel");
+    m_findEdit = new QLineEdit(content);
+    m_findEdit->setObjectName("frInput");
     m_findEdit->setPlaceholderText("Search text…");
-    formLayout->addWidget(m_findEdit, 0, 1);
+    findRow->addWidget(findLabel);
+    findRow->addWidget(m_findEdit, 1);
+    contentLayout->addLayout(findRow);
 
-    formLayout->addWidget(new QLabel("Replace with"), 1, 0, Qt::AlignRight);
-    m_replaceEdit = new QLineEdit(this);
-    m_replaceEdit->setPlaceholderText("Nothing");
-    formLayout->addWidget(m_replaceEdit, 1, 1);
 
-    root->addLayout(formLayout);
+    auto *replaceRow = new QHBoxLayout;
+    replaceRow->setSpacing(10);
+    auto *replaceLabel = new QLabel("Replace", content);
+    replaceLabel->setFixedWidth(80);
+    replaceLabel->setObjectName("frLabel");
+    m_replaceEdit = new QLineEdit(content);
+    m_replaceEdit->setObjectName("frInput");
+    m_replaceEdit->setPlaceholderText("Replacement text…");
+    replaceRow->addWidget(replaceLabel);
+    replaceRow->addWidget(m_replaceEdit, 1);
+    contentLayout->addLayout(replaceRow);
 
-    auto *optGrid = new QGridLayout;
-    optGrid->setHorizontalSpacing(20);
-    optGrid->setVerticalSpacing(4);
 
-    m_matchCase = new QCheckBox("Match case", this);
-    m_wholeWord = new QCheckBox("Match entire word only", this);
-    m_regex = new QCheckBox("Regular expression", this);
-    m_backward = new QCheckBox("Search backwards", this);
-    m_wrap = new QCheckBox("Wrap around", this);
+    auto *optGroup = new QWidget(content);
+    optGroup->setObjectName("frOptions");
+    auto *optLayout = new QGridLayout(optGroup);
+    optLayout->setContentsMargins(12, 12, 12, 12);
+    optLayout->setSpacing(10);
+    optLayout->setColumnStretch(1, 1);
+
+    m_matchCase = new QCheckBox("Match case", optGroup);
+    m_wholeWord = new QCheckBox("Whole word", optGroup);
+    m_regex = new QCheckBox("Regular expression", optGroup);
+    m_backward = new QCheckBox("Search backwards", optGroup);
+    m_wrap = new QCheckBox("Wrap around", optGroup);
     m_wrap->setChecked(true);
 
-    optGrid->addWidget(m_matchCase, 0, 0);
-    optGrid->addWidget(m_backward, 0, 1);
-    optGrid->addWidget(m_wholeWord, 1, 0);
-    optGrid->addWidget(m_wrap, 1, 1);
-    optGrid->addWidget(m_regex, 2, 0);
-    root->addLayout(optGrid);
+    optLayout->addWidget(m_matchCase, 0, 0);
+    optLayout->addWidget(m_wholeWord, 0, 1);
+    optLayout->addWidget(m_regex, 1, 0);
+    optLayout->addWidget(m_backward, 1, 1);
+    optLayout->addWidget(m_wrap, 2, 0);
 
-    m_statusLabel = new QLabel(this);
-    m_statusLabel->setStyleSheet("color: #e74c3c; font-size: 12px;");
-    root->addWidget(m_statusLabel);
+    contentLayout->addWidget(optGroup);
+
+
+    m_statusLabel = new QLabel(content);
+    m_statusLabel->setObjectName("frStatus");
+    m_statusLabel->setMinimumHeight(20);
+    contentLayout->addWidget(m_statusLabel);
+
 
     auto *btnRow = new QHBoxLayout;
+    btnRow->setSpacing(8);
     btnRow->addStretch();
-    m_replaceAllBtn = new QPushButton("Replace All", this);
-    m_replaceBtn = new QPushButton("Replace", this);
-    m_findBtn = new QPushButton("Find", this);
+
+    m_findPrevBtn = new QPushButton("◀  Find Previous", content);
+    m_findPrevBtn->setObjectName("frBtnSecondary");
+    m_findPrevBtn->setCursor(Qt::PointingHandCursor);
+
+    m_findBtn = new QPushButton("Find Next  ▶", content);
+    m_findBtn->setObjectName("frBtnPrimary");
+    m_findBtn->setCursor(Qt::PointingHandCursor);
     m_findBtn->setDefault(true);
 
-    btnRow->addWidget(m_replaceAllBtn);
-    btnRow->addWidget(m_replaceBtn);
+    m_replaceBtn = new QPushButton("Replace", content);
+    m_replaceBtn->setObjectName("frBtnSecondary");
+    m_replaceBtn->setCursor(Qt::PointingHandCursor);
+
+    m_replaceAllBtn = new QPushButton("Replace All", content);
+    m_replaceAllBtn->setObjectName("frBtnSecondary");
+    m_replaceAllBtn->setCursor(Qt::PointingHandCursor);
+
+    btnRow->addWidget(m_findPrevBtn);
     btnRow->addWidget(m_findBtn);
-    root->addLayout(btnRow);
+    btnRow->addSpacing(12);
+    btnRow->addWidget(m_replaceBtn);
+    btnRow->addWidget(m_replaceAllBtn);
+    contentLayout->addLayout(btnRow);
+
+    root->addWidget(content, 1);
+
 
     connect(m_findBtn, &QPushButton::clicked, this, &FindReplaceDialog::findNext);
-    connect(m_replaceBtn, &QPushButton::clicked, this,
-            &FindReplaceDialog::replace);
-    connect(m_replaceAllBtn, &QPushButton::clicked, this,
-            &FindReplaceDialog::replaceAll);
-    connect(m_findEdit, &QLineEdit::returnPressed, this,
-            &FindReplaceDialog::findNext);
+    connect(m_findPrevBtn, &QPushButton::clicked, this, &FindReplaceDialog::findPrev);
+    connect(m_replaceBtn, &QPushButton::clicked, this, &FindReplaceDialog::replace);
+    connect(m_replaceAllBtn, &QPushButton::clicked, this, &FindReplaceDialog::replaceAll);
+    connect(m_findEdit, &QLineEdit::returnPressed, this, &FindReplaceDialog::findNext);
+    connect(m_replaceEdit, &QLineEdit::returnPressed, this, &FindReplaceDialog::replace);
+    connect(m_findEdit, &QLineEdit::textChanged, this, &FindReplaceDialog::updateButtonStates);
+    connect(m_replaceEdit, &QLineEdit::textChanged, this, &FindReplaceDialog::updateButtonStates);
 }
 
-void FindReplaceDialog::setEditor(CodeEditor *editor) { m_editor = editor; }
+void FindReplaceDialog::updateButtonStates() {
+    const bool hasFindText = !m_findEdit->text().isEmpty();
+    m_findBtn->setEnabled(hasFindText);
+    m_findPrevBtn->setEnabled(hasFindText);
+    m_replaceBtn->setEnabled(hasFindText);
+    m_replaceAllBtn->setEnabled(hasFindText);
+}
+
+void FindReplaceDialog::setEditor(CodeEditor *editor) {
+    m_editor = editor;
+    updateButtonStates();
+}
 
 QTextDocument::FindFlags FindReplaceDialog::buildFlags(bool backward) const {
     QTextDocument::FindFlags flags;
@@ -123,7 +183,7 @@ bool FindReplaceDialog::doFind(bool backward) {
         m_editor->setTextCursor(found);
         return true;
     }
-    m_statusLabel->setText("Not found.");
+    m_statusLabel->setText("No matches found.");
     return false;
 }
 
@@ -155,7 +215,7 @@ void FindReplaceDialog::replace() {
             m_editor->setTextCursor(cur);
         }
     }
-    doFind(false); // Advance to next
+    doFind(false);
 }
 
 void FindReplaceDialog::replaceAll() {
@@ -194,8 +254,25 @@ void FindReplaceDialog::replaceAll() {
     }
 
     cur.endEditBlock();
-    m_statusLabel->setStyleSheet("color: #2ecc71; font-size: 12px;");
+    m_statusLabel->setStyleSheet("color: #2ecc71; font-size: 12px; padding-left: 4px;");
     m_statusLabel->setText(count
                                ? QString("%1 replacement(s) made.").arg(count)
-                               : "Not found.");
+                               : "No matches found.");
+}
+
+void FindReplaceDialog::keyPressEvent(QKeyEvent *event) {
+    if (event->key() == Qt::Key_Escape) {
+        hide();
+        return;
+    }
+    QDialog::keyPressEvent(event);
+}
+
+void FindReplaceDialog::showEvent(QShowEvent *event) {
+    QDialog::showEvent(event);
+    if (m_findEdit) {
+        m_findEdit->setFocus();
+        m_findEdit->selectAll();
+    }
+    updateButtonStates();
 }

@@ -7,8 +7,9 @@
 #include <QLabel>
 #include <QLineEdit>
 #include <QPushButton>
+#include <QTextDocument>
 
-#include "CodeEditor.h"
+class CodeEditor;
 
 class FindReplaceDialog : public QDialog {
     Q_OBJECT
@@ -18,20 +19,21 @@ public:
 
     void setEditor(CodeEditor* editor);
 
-public
-    slots :
-    
+public slots:
     void findNext();
     void findPrev();
-
     void replace();
     void replaceAll();
 
+protected:
+    void keyPressEvent(QKeyEvent* event) override;
+    void showEvent(QShowEvent* event) override;
+
 private:
     void setupUi();
+    void updateButtonStates();
 
     bool doFind(bool backward);
-
     QTextDocument::FindFlags buildFlags(bool backward) const;
 
     CodeEditor* m_editor = nullptr;
@@ -47,6 +49,7 @@ private:
     QCheckBox* m_wrap = nullptr;
 
     QPushButton* m_findBtn = nullptr;
+    QPushButton* m_findPrevBtn = nullptr;
     QPushButton* m_replaceBtn = nullptr;
     QPushButton* m_replaceAllBtn = nullptr;
 };
