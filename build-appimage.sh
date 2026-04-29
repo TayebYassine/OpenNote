@@ -3,7 +3,7 @@ set -euo pipefail
 
 QT_DIR="$HOME/Qt/6.7.3/gcc_64"
 BUILD_DIR="build-appimage"
-APP_VERSION="1.1.0"
+APP_VERSION="1.2.0"
 
 [ ! -f "packaging/opennote.desktop" ] && echo "ERROR: packaging/opennote.desktop not found." && exit 1
 
