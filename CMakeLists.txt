@@ -12,12 +12,14 @@ set(CMAKE_PREFIX_PATH "/home/tayeb-yassine/Qt/6.7.3/gcc_64")
 set(Qt6_ROOT "/home/tayeb-yassine/Qt/6.7.3/gcc_64")
 set(Qt6_DIR "/home/tayeb-yassine/Qt/6.7.3/gcc_64/lib/cmake/Qt6")
 
-find_package(Qt6 6.7 REQUIRED COMPONENTS Core Gui Widgets)
+find_package(Qt6 6.7 REQUIRED COMPONENTS Core Gui Widgets Network)
 
 add_executable(OpenNote_Linux
         main.cpp
         MainWindow.cpp
         MainWindow.h
+        SingleInstanceController.h
+        SingleInstanceController.cpp
         FileTreeWidget.h
         FileTreeWidget.cpp
         Language.h
@@ -48,6 +50,7 @@ target_link_libraries(OpenNote_Linux PRIVATE
         Qt6::Core
         Qt6::Gui
         Qt6::Widgets
+        Qt6::Network
 )
 
 include(GNUInstallDirs)
@@ -63,9 +66,11 @@ install(FILES packaging/opennote.desktop
 )
 
 # Install icon
-install(FILES packaging/opennote.png
-        DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/icons/hicolor/256x256/apps
-)
+if (EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/packaging/opennote.png")
+    install(FILES packaging/opennote.png
+            DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/icons/hicolor/256x256/apps
+    )
+endif()
 
 # CPack configuration for DEB packages
 set(CPACK_GENERATOR "DEB")

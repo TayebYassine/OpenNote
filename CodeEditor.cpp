@@ -1,6 +1,7 @@
 #include "CodeEditor.h"
 
 #include <QFontDatabase>
+#include <QMenu>
 #include <QMouseEvent>
 #include <QPainter>
 #include <QScrollBar>
@@ -9,11 +10,17 @@
 #include "AppDatabase.h"
 #include "SyntaxHighlighter.h"
 
+namespace {
+constexpr int kBookmarkColumnWidth = 18;
+constexpr int kFoldColumnWidth = 20;
+}  // namespace
+
 class LineNumberArea : public QWidget {
 public:
     explicit LineNumberArea(CodeEditor *editor)
         : QWidget(editor), m_editor(editor) {
         setCursor(Qt::ArrowCursor);
+        setMouseTracking(true);
     }
 
     [[nodiscard]] QSize sizeHint() const override {
@@ -27,6 +34,18 @@ protected:
 
     void mousePressEvent(QMouseEvent *e) override {
         m_editor->lineNumberAreaMousePress(e);
+    }
+
+    void mouseMoveEvent(QMouseEvent *e) override {
+        m_editor->lineNumberAreaMouseMove(e);
+    }
+
+    void leaveEvent(QEvent*) override {
+        m_editor->lineNumberAreaLeave();
+    }
+
+    void contextMenuEvent(QContextMenuEvent* e) override {
+        m_editor->lineNumberAreaContextMenuEvent(e);
     }
 
 private:
@@ -260,7 +279,8 @@ int CodeEditor::lineNumberAreaWidth() const {
         ++digits;
     }
 
-    int width = 16 + 16 + fontMetrics().horizontalAdvance('9') * digits + 10;
+    int width = kBookmarkColumnWidth + kFoldColumnWidth +
+                fontMetrics().horizontalAdvance('9') * digits + 10;
     return width;
 }
 
@@ -304,11 +324,17 @@ void CodeEditor::lineNumberAreaPaintEvent(const QPaintEvent *event) const {
                 painter.drawEllipse(dx, dy, ds, ds);
                 painter.setRenderHint(QPainter::Antialiasing, false);
             }
-            xOffset += 16;
+            xOffset += kBookmarkColumnWidth;
 
             // Draw fold indicator (if present)
             if (m_codeFoldingEnabled && m_foldManager && m_foldManager->isFoldStart(blockNumber)) {
                 bool isFolded = m_foldManager->isFolded(blockNumber);
+
+                if (m_gutterHoverLine == blockNumber && m_gutterHoverArea == GutterArea::Fold) {
+                    QColor hover = pal.color(QPalette::Highlight);
+                    hover.setAlpha(35);
+                    painter.fillRect(QRect(xOffset, top, kFoldColumnWidth, lineH), hover);
+                }
 
                 painter.setRenderHint(QPainter::Antialiasing, true);
                 painter.setPen(QPen(pal.color(QPalette::Mid), 1));
@@ -316,7 +342,7 @@ void CodeEditor::lineNumberAreaPaintEvent(const QPaintEvent *event) const {
 
                 // Draw a small box
                 const int boxSize = 10;
-                const int boxX = xOffset + 3;
+                const int boxX = xOffset + (kFoldColumnWidth - boxSize) / 2;
                 const int boxY = top + (lineH - boxSize) / 2;
                 painter.drawRect(boxX, boxY, boxSize, boxSize);
 
@@ -338,7 +364,7 @@ void CodeEditor::lineNumberAreaPaintEvent(const QPaintEvent *event) const {
 
                 painter.setRenderHint(QPainter::Antialiasing, false);
             }
-            xOffset += 16;
+            xOffset += kFoldColumnWidth;
 
             // Draw line number
             painter.setPen(blockNumber == curLine
@@ -366,7 +392,8 @@ void CodeEditor::lineNumberAreaMousePress(const QMouseEvent *event) {
     while (block.isValid()) {
         if (event->pos().y() >= top && event->pos().y() < bottom) {
             if (m_codeFoldingEnabled && m_foldManager &&
-                event->pos().x() >= 16 && event->pos().x() < 32 &&
+                event->pos().x() >= kBookmarkColumnWidth &&
+                event->pos().x() < kBookmarkColumnWidth + kFoldColumnWidth &&
                 m_foldManager->isFoldStart(blockNumber)) {
                 m_foldManager->toggleFold(blockNumber);
                 viewport()->update();
@@ -377,7 +404,7 @@ void CodeEditor::lineNumberAreaMousePress(const QMouseEvent *event) {
 
                 return;
             }
-            else if (event->pos().x() < 16) {
+            else if (event->pos().x() < kBookmarkColumnWidth) {
                 toggleBookmark(blockNumber);
                 return;
             }
@@ -388,6 +415,101 @@ void CodeEditor::lineNumberAreaMousePress(const QMouseEvent *event) {
         bottom = top + qRound(blockBoundingRect(block).height());
         ++blockNumber;
     }
+}
+
+void CodeEditor::setGutterHover(int line, GutterArea area) {
+    if (m_gutterHoverLine == line && m_gutterHoverArea == area) return;
+    m_gutterHoverLine = line;
+    m_gutterHoverArea = area;
+    if (m_lineNumberArea) m_lineNumberArea->update();
+}
+
+void CodeEditor::lineNumberAreaMouseMove(const QMouseEvent* event) {
+    if (!m_showLineNumbers) return;
+
+    QTextBlock block = firstVisibleBlock();
+    int blockNumber = block.blockNumber();
+    int top =
+        qRound(blockBoundingGeometry(block).translated(contentOffset()).top());
+    int bottom = top + qRound(blockBoundingRect(block).height());
+
+    while (block.isValid()) {
+        if (event->pos().y() >= top && event->pos().y() < bottom) {
+            if (m_codeFoldingEnabled && m_foldManager &&
+                event->pos().x() >= kBookmarkColumnWidth &&
+                event->pos().x() < kBookmarkColumnWidth + kFoldColumnWidth &&
+                m_foldManager->isFoldStart(blockNumber)) {
+                setGutterHover(blockNumber, GutterArea::Fold);
+            }
+            else if (event->pos().x() < kBookmarkColumnWidth) {
+                setGutterHover(blockNumber, GutterArea::Bookmark);
+            }
+            else {
+                setGutterHover(-1, GutterArea::None);
+            }
+            return;
+        }
+        block = block.next();
+        top = bottom;
+        bottom = top + qRound(blockBoundingRect(block).height());
+        ++blockNumber;
+    }
+
+    setGutterHover(-1, GutterArea::None);
+}
+
+void CodeEditor::lineNumberAreaLeave() {
+    setGutterHover(-1, GutterArea::None);
+}
+
+void CodeEditor::lineNumberAreaContextMenuEvent(QContextMenuEvent* event) {
+    if (!event) return;
+    if (!m_codeFoldingEnabled || !m_foldManager) return;
+
+    QMenu menu;
+
+    // If the user right-clicked on a fold start line, offer toggle.
+    QTextBlock block = firstVisibleBlock();
+    int blockNumber = block.blockNumber();
+    int top =
+        qRound(blockBoundingGeometry(block).translated(contentOffset()).top());
+    int bottom = top + qRound(blockBoundingRect(block).height());
+
+    while (block.isValid()) {
+        if (event->pos().y() >= top && event->pos().y() < bottom) break;
+        block = block.next();
+        top = bottom;
+        bottom = top + qRound(blockBoundingRect(block).height());
+        ++blockNumber;
+    }
+
+    if (block.isValid() && m_foldManager->isFoldStart(blockNumber)) {
+        QAction* toggle = menu.addAction(
+            m_foldManager->isFolded(blockNumber) ? "Unfold" : "Fold");
+        connect(toggle, &QAction::triggered, this, [this, blockNumber]() {
+            m_foldManager->toggleFold(blockNumber);
+            viewport()->update();
+            m_lineNumberArea->update();
+            onCursorPositionChanged();
+        });
+        menu.addSeparator();
+    }
+
+    QAction* foldAll = menu.addAction("Fold All");
+    QAction* unfoldAll = menu.addAction("Unfold All");
+    connect(foldAll, &QAction::triggered, this, [this]() {
+        for (int line : m_foldManager->foldableLines()) m_foldManager->foldRegion(line);
+        viewport()->update();
+        m_lineNumberArea->update();
+        onCursorPositionChanged();
+    });
+    connect(unfoldAll, &QAction::triggered, this, [this]() {
+        for (int line : m_foldManager->foldableLines()) m_foldManager->unfoldRegion(line);
+        viewport()->update();
+        m_lineNumberArea->update();
+    });
+
+    menu.exec(event->globalPos());
 }
 
 void CodeEditor::updateLineNumberAreaWidth(int) {

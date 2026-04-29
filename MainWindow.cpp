@@ -16,6 +16,38 @@
 #include "FindReplaceDialog.h"
 #include "PreferencesDialog.h"
 
+void MainWindow::openFiles(const QStringList& paths) {
+    QStringList normalized;
+    normalized.reserve(paths.size());
+
+    for (const QString& raw : paths) {
+        const QString trimmed = raw.trimmed();
+        if (trimmed.isEmpty()) continue;
+
+        QFileInfo fi(trimmed);
+        const QString abs = fi.isAbsolute() ? fi.absoluteFilePath()
+                                            : QFileInfo(QDir::current(), trimmed).absoluteFilePath();
+        QFileInfo absFi(abs);
+        if (!absFi.exists() || !absFi.isFile()) continue;
+
+        const QString canonical = absFi.canonicalFilePath();
+        normalized.append(canonical.isEmpty() ? absFi.absoluteFilePath() : canonical);
+    }
+
+    normalized.removeDuplicates();
+
+    for (const QString& path : normalized) {
+        m_tabWidget->openFile(path);
+    }
+
+    if (!normalized.isEmpty()) {
+        show();
+        raise();
+        activateWindow();
+        if (auto* ed = m_tabWidget->currentEditor()) ed->setFocus();
+    }
+}
+
 // Constructor
 
 MainWindow::MainWindow(QWidget* parent) : QMainWindow(parent) {
@@ -33,9 +65,7 @@ MainWindow::MainWindow(QWidget* parent) : QMainWindow(parent) {
 
     // Restore recent files as tabs
     if (AppDatabase::instance().openRecentFiles()) {
-        for (const QString& path : AppDatabase::instance().recentFiles()) {
-            if (QFile::exists(path)) m_tabWidget->openFile(path);
-        }
+        openFiles(AppDatabase::instance().recentFiles());
     }
 
     if (m_tabWidget->count() == 0) m_tabWidget->newFile();
@@ -248,7 +278,7 @@ void MainWindow::onNewFile() { m_tabWidget->newFile(); }
 void MainWindow::onOpenFile() {
     const QString path = QFileDialog::getOpenFileName(
         this, "Open File", QDir::homePath(), "All Files (*)");
-    if (!path.isEmpty()) m_tabWidget->openFile(path);
+    if (!path.isEmpty()) openFiles({path});
 }
 
 void MainWindow::onOpenFolder() {
@@ -297,7 +327,7 @@ void MainWindow::onQuit() { close(); }
 
 void MainWindow::onOpenRecentFile(const QString& path) {
     if (QFile::exists(path)) {
-        m_tabWidget->openFile(path);
+        openFiles({path});
     }
     else {
         QMessageBox::warning(this, "File Not Found", "Could not find:\n" + path);
@@ -478,7 +508,7 @@ void MainWindow::onCursorPositionChanged(int line, int col) {
 }
 
 void MainWindow::onFileSelected(const QString& filePath) {
-    m_tabWidget->openFile(filePath);
+    openFiles({filePath});
     statusBar()->showMessage("Opened: " + filePath, 3000);
 }
 

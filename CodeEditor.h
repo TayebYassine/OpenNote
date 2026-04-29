@@ -2,6 +2,7 @@
 #define OPENNOTE_LINUX_CODEEDITOR_H
 #pragma once
 
+#include <QContextMenuEvent>
 #include <QKeyEvent>
 #include <QPlainTextEdit>
 #include <QSet>
@@ -56,6 +57,10 @@ public:
 
     void lineNumberAreaMousePress(const QMouseEvent* event);
 
+    void lineNumberAreaMouseMove(const QMouseEvent* event);
+    void lineNumberAreaLeave();
+    void lineNumberAreaContextMenuEvent(QContextMenuEvent* event);
+
 public slots:
     void goToLine(int lineNumber);
 
@@ -78,6 +83,9 @@ private slots:
 private:
     void initEditor();
 
+    enum class GutterArea { None, Bookmark, Fold };
+    void setGutterHover(int line, GutterArea area);
+
     LineNumberArea* m_lineNumberArea = nullptr;
     SyntaxHighlighter* m_highlighter = nullptr;
     FoldManager* m_foldManager = nullptr;
@@ -91,6 +99,9 @@ private:
     bool m_spacesInsteadOfTabs = false;
     bool m_codeFoldingEnabled = true;
     int m_tabSize = 4;
+
+    mutable int m_gutterHoverLine = -1;
+    mutable GutterArea m_gutterHoverArea = GutterArea::None;
 };
 
 #endif  // OPENNOTE_LINUX_CODEEDITOR_H

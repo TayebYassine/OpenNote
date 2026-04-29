@@ -23,6 +23,8 @@ public:
 
     ~MainWindow() override = default;
 
+    void openFiles(const QStringList& paths);
+
     bool hasTabOpenWithPath(const QString& filePath);
 
 protected:

@@ -5,7 +5,6 @@ QT_DIR="$HOME/Qt/6.7.3/gcc_64"
 BUILD_DIR="build-appimage"
 APP_VERSION="1.1.0"
 
-[ ! -f "packaging/opennote.png" ]    && echo "ERROR: packaging/opennote.png not found."    && exit 1
 [ ! -f "packaging/opennote.desktop" ] && echo "ERROR: packaging/opennote.desktop not found." && exit 1
 
 echo ""
@@ -44,10 +43,14 @@ fi
 
 echo ""
 echo "[4/6] Embedding application icon..."
-mkdir -p "$BUILD_DIR/AppDir/usr/share/icons/hicolor/256x256/apps"
-cp "packaging/opennote.png" "$BUILD_DIR/AppDir/usr/share/icons/hicolor/256x256/apps/opennote.png"
-cp "packaging/opennote.png" "$BUILD_DIR/AppDir/opennote.png"
-echo "✓ Icon embedded"
+if [ -f "packaging/opennote.png" ]; then
+    mkdir -p "$BUILD_DIR/AppDir/usr/share/icons/hicolor/256x256/apps"
+    cp "packaging/opennote.png" "$BUILD_DIR/AppDir/usr/share/icons/hicolor/256x256/apps/opennote.png"
+    cp "packaging/opennote.png" "$BUILD_DIR/AppDir/opennote.png"
+    echo "✓ Icon embedded"
+else
+    echo "WARNING: packaging/opennote.png not found; AppImage will use a generic icon."
+fi
 
 echo ""
 echo "[5/6] Writing custom AppRun..."
@@ -90,12 +93,20 @@ export LD_LIBRARY_PATH="$QT_DIR/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
 export QMAKE="$QT_DIR/bin/qmake"
 export QT_PLUGIN_PATH="$QT_DIR/plugins"
 
-"$LD_BIN" \
-    --appdir  "$BUILD_DIR/AppDir" \
-    --desktop-file "packaging/opennote.desktop" \
-    --icon-file    "packaging/opennote.png" \
-    --plugin qt \
-    --output appimage
+if [ -f "packaging/opennote.png" ]; then
+    "$LD_BIN" \
+        --appdir  "$BUILD_DIR/AppDir" \
+        --desktop-file "packaging/opennote.desktop" \
+        --icon-file    "packaging/opennote.png" \
+        --plugin qt \
+        --output appimage
+else
+    "$LD_BIN" \
+        --appdir  "$BUILD_DIR/AppDir" \
+        --desktop-file "packaging/opennote.desktop" \
+        --plugin qt \
+        --output appimage
+fi
 
 OUTPUT="OpenNote-${APP_VERSION}-x86_64.AppImage"
 for f in OpenNote*.AppImage; do
